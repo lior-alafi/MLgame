@@ -1,0 +1,20 @@
+{
+  "id": "./?app=ml-recall-89-2511",
+  "name": "ML Recall 89-2511",
+  "short_name": "ML Recall",
+  "description": "Mobile-first active recall game for BIU Introduction to Machine Learning 2026",
+  "start_url": "./?source=pwa&build=v10#home",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#0b1020",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "lang": "he",
+  "dir": "rtl",
+  "categories": ["education"],
+  "icons": [
+    {"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}
