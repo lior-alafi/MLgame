@@ -37,6 +37,9 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.48);display:flex;align-items:flex-end;justify-content:center;z-index:30}.sheet{width:min(760px,100%);max-height:88dvh;overflow:auto;background:var(--card);border-radius:26px 26px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}.sheet h2{margin:0 0 12px}.session-choices{display:grid;grid-template-columns:1fr 1fr;gap:9px}.session-choices button{min-height:78px;border-radius:18px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:800}
 .timer{font-variant-numeric:tabular-nums;color:var(--warn);font-weight:800}.empty{text-align:center;color:var(--muted);padding:50px 12px}.tiny{font-size:12px;color:var(--muted)}
 @media(max-width:380px){.grid{grid-template-columns:1fr}.home-btn.primary{grid-column:auto}.hero h1{font-size:27px}.question-card{padding:15px}.rating button{font-size:13px}.katex{font-size:1em!important}}
+
+
+/* v1.1: stronger RTL/LTR isolation and clearer feedback */
 .question-card{direction:rtl}
 .q-head{direction:rtl;justify-content:space-between}
 .q-copy{min-width:0;flex:1;text-align:right}
@@ -68,14 +71,23 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
   .math-option .katex{font-size:1.18em!important}
 }
 .q-cue{margin-top:7px;font-size:16px;font-weight:700;color:var(--accent);text-align:right;unicode-bidi:plaintext}
+
+/* v1.2: explicit corrective feedback + same-question retry */
 .correct-answer-block{margin-top:10px;padding:11px 12px;border:1px solid color-mix(in srgb,var(--bad) 35%,var(--border));border-radius:14px;background:color-mix(in srgb,var(--card) 78%,var(--bad) 6%)}
 .correct-answer-block .feedback-label{font-weight:800;color:var(--text);margin:0 0 7px}
 .feedback-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .feedback-actions .secondary-btn{min-height:46px;flex:1 1 180px}
 .retry-btn{border:1px solid var(--accent)}
+
+/* v4 clarity */
 .q-context{background:rgba(99,102,241,.08);border:1px solid rgba(129,140,248,.22);border-radius:12px;padding:10px 12px;color:var(--text);font-size:14px}.q-cue{direction:ltr!important;unicode-bidi:isolate;font-size:15px}.built-label{font-weight:800;text-align:right;margin:16px 0 4px}.built-formula{border:1px dashed var(--border);border-radius:14px;padding:8px 10px;background:rgba(255,255,255,.02)}
+
+/* v7: next-piece answer buttons must always be interactive. */
 .math-options .option{pointer-events:auto;position:relative;z-index:1}
 .math-options .option>span{pointer-events:none}
+
+
+/* v9 PWA install */
 .install-card{border-color:color-mix(in srgb,var(--accent) 45%,var(--border));background:color-mix(in srgb,var(--accent2) 50%,var(--card))}
 .install-sheet p{line-height:1.55;color:var(--muted)}
 .install-step{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--border);line-height:1.55}
