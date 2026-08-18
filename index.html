@@ -9,22 +9,24 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="ML Recall" />
   <title>ML Recall — 89-2511</title>
-  <link rel="manifest" href="manifest.webmanifest?v=12" />
+  <link rel="manifest" href="manifest.webmanifest?v=13" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <link rel="stylesheet" href="styles.css?v=13" />
 </head>
 <body>
-  <div id="build-marker" style="position:fixed;left:8px;bottom:8px;z-index:9999;font:700 11px/1.2 system-ui;padding:5px 8px;border-radius:999px;background:#111827;color:#c7d2fe;border:1px solid #374151;opacity:.9">BUILD v12 · GitHub Pages</div>
+  <div id="build-marker" style="position:fixed;left:8px;bottom:8px;z-index:9999;font:700 11px/1.2 system-ui;padding:5px 8px;border-radius:999px;background:#111827;color:#c7d2fe;border:1px solid #374151;opacity:.9">BUILD v13 · GitHub Pages</div>
   <div id="app"></div>
-  <script src="question-bank.js?v=12"></script>
-  <script src="app.js?v=12"></script>
-  <script src="math-mode.js?v=12"></script>
+  <script src="question-bank.js?v=13"></script>
+  <script src="course-math-v13.js?v=13"></script>
+  <script src="app.js?v=13"></script>
+  <script src="math-mode.js?v=13"></script>
+  <script src="why-context-v13.js?v=13"></script>
   <script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="window.dispatchEvent(new Event('katexready'))"></script>
   <script>
   if ('serviceWorker' in navigator && window.isSecureContext) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=12', {scope:'./'}).then(reg => reg.update()).catch(()=>{});
+      navigator.serviceWorker.register('./sw.js?v=13', {scope:'./'}).then(reg => reg.update()).catch(()=>{});
     });
   }
   </script>
