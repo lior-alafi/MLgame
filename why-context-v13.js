@@ -63,8 +63,6 @@ function renderTex(root=document){
         return;
       }catch{}
     }
-    // Before KaTeX finishes loading, show the source once without repeatedly
-    // mutating the DOM. katexready will render it later.
     if(el.textContent!==tex) el.textContent=tex;
   });
 }
@@ -82,7 +80,7 @@ function augmentWhy(){
 
 function decorateVersion(){
   document.querySelectorAll('.q-sub').forEach(el=>{
-    const next=el.textContent.replace(/· v9\b/g,'· v14').replace(/· v11\b/g,'· v14').replace(/· v12\b/g,'· v14').replace(/· v13\b/g,'· v14');
+    const next=el.textContent.replace(/· v9\b/g,'· v15').replace(/· v11\b/g,'· v15').replace(/· v12\b/g,'· v15').replace(/· v13\b/g,'· v15').replace(/· v14\b/g,'· v15');
     if(next!==el.textContent) el.textContent=next;
   });
 }
