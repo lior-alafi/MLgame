@@ -3,17 +3,24 @@
   const BANK = window.ML_BANK;
   if(!BANK) return;
 
+  // Keep the same preference key so the user's existing topic choice is preserved.
   const TOPIC_KEY = 'ml-math-topics-v12';
   const originalItems = [...BANK.items];
   const originalTopics = [...BANK.topics];
   let active = false;
+  let lastRuntimeError = '';
+
+  window.addEventListener('error', e => {
+    lastRuntimeError = e?.error?.stack || e?.message || 'Unknown JavaScript error';
+  });
+  window.addEventListener('unhandledrejection', e => {
+    lastRuntimeError = e?.reason?.stack || String(e?.reason || 'Unhandled promise rejection');
+  });
 
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   const eligibleSheet = it => it.sheet === 'NOT_GIVEN' || it.sheet === 'PARTIAL';
   const isMathItem = it => {
     if(!eligibleSheet(it)) return false;
-    // PARTIAL means the sheet supplies only part of the needed mathematics,
-    // so every PARTIAL item belongs in this mode even if it is stored as an algorithm/definition.
     if(it.sheet === 'PARTIAL') return true;
     if(it.kind === 'formula') return true;
     if(it.kind === 'theorem') return true;
@@ -35,7 +42,7 @@
   function savePrefs(p){ localStorage.setItem(TOPIC_KEY, JSON.stringify(p)); }
 
   function boosted(it){
-    let mul = it.sheet==='NOT_GIVEN' ? 4.5 : 3.4; // PARTIAL is also a core Math Memory target.
+    let mul = it.sheet==='NOT_GIVEN' ? 4.5 : 3.4;
     if(it.memory==='MUST_RECALL') mul*=1.8;
     else if(it.memory==='MUST_RECONSTRUCT') mul*=1.55;
     return {...it, priority:Math.max(1,(it.priority||1)*mul)};
@@ -53,7 +60,7 @@
   }
 
   function restore(){
-    if(!active && BANK.items===originalItems) return;
+    if(!active) return;
     BANK.items = originalItems;
     BANK.topics = originalTopics;
     active = false;
@@ -63,9 +70,44 @@
 
   function closeModal(){ document.getElementById('mathModeModal')?.remove(); }
 
+  function failStart(message){
+    restore();
+    const old=document.getElementById('mathStartFailure'); old?.remove();
+    const box=document.createElement('div');
+    box.className='modal'; box.id='mathStartFailure';
+    box.innerHTML=`<div class="sheet math-sheet" dir="rtl"><h2>Math Memory לא התחיל</h2><p class="prose-he">${esc(message)}</p>${lastRuntimeError?`<details><summary>פרטי שגיאה</summary><pre style="direction:ltr;white-space:pre-wrap;font-size:11px">${esc(lastRuntimeError)}</pre></details>`:''}<button class="primary-btn" id="mathFailClose" style="width:100%">חזרה</button></div>`;
+    document.body.appendChild(box);
+    box.querySelector('#mathFailClose').onclick=()=>box.remove();
+  }
+
+  function launchMathSession(){
+    // v13 used one immediate hidden-DOM click. After a timed-out/reloaded build that could
+    // silently miss the button. v14 retries for a short bounded interval and verifies that
+    // an actual question card was created.
+    let attempts=0;
+    const tryLaunch=()=>{
+      attempts++;
+      const btn=document.getElementById('continue');
+      if(btn){
+        btn.click();
+        setTimeout(()=>{
+          const ok = location.hash==='#play' && !!document.querySelector('.question-card');
+          if(ok){ decoratePlay(); return; }
+          if(attempts<8){ setTimeout(tryLaunch,80); return; }
+          failStart('לא נוצרה שאלה אחרי לחיצה על Start. הגרסה נשארה יציבה והמסנן הוחזר למצב הרגיל.');
+        },120);
+        return;
+      }
+      if(attempts<8){ setTimeout(tryLaunch,80); return; }
+      failStart('כפתור Continue של מנוע התרגול לא נמצא. רענון אחד אמור לפתור זאת; ההתקדמות לא נמחקת.');
+    };
+    requestAnimationFrame(tryLaunch);
+  }
+
   function openChooser(){
     closeModal();
     restore();
+    lastRuntimeError='';
     const pref=loadPrefs();
     const selected=new Set(pref.topics.filter(t=>mathTopics().includes(t)));
     let all=pref.all || selected.size===0;
@@ -92,6 +134,7 @@
 
     const note=modal.querySelector('#mathSelectedNote');
     const allBtn=modal.querySelector('#mathAll');
+    const startBtn=modal.querySelector('#mathStart');
     const refresh=()=>{
       allBtn.classList.toggle('math-all-on',all);
       modal.querySelectorAll('[data-math-topic]').forEach((b,i)=>{
@@ -108,21 +151,22 @@
     });
     modal.querySelector('#mathCancel').onclick=closeModal;
     modal.onclick=e=>{if(e.target===modal) closeModal();};
-    modal.querySelector('#mathStart').onclick=()=>{
+    startBtn.onclick=()=>{
       if(!all && !selected.size){ note.textContent='בחר לפחות נושא אחד.'; return; }
+      startBtn.disabled=true;
+      startBtn.textContent='פותח Math Memory…';
+      note.textContent=all?'מכין תרגול מכל הנושאים…':`מכין תרגול מ-${selected.size} נושאים…`;
       const chosen={all,topics:[...selected]}; savePrefs(chosen);
-      if(!applyFilter(chosen)) return;
+      if(!applyFilter(chosen)){ startBtn.disabled=false; startBtn.textContent='התחל Math Memory'; note.textContent='לא נמצאו פריטי Math Memory למסנן הזה.'; return; }
       closeModal();
-      // Reuse the proven session engine so scoring, retries and spaced repetition remain identical.
-      document.getElementById('continue')?.click();
-      setTimeout(()=>decoratePlay(),0);
+      launchMathSession();
     };
   }
 
   function decoratePlay(){
     if(!active) return;
     const title=document.querySelector('.topbar .title');
-    if(title) title.textContent='🧮 MATH MEMORY';
+    if(title && title.textContent!=='🧮 MATH MEMORY') title.textContent='🧮 MATH MEMORY';
     const meta=document.querySelector('.question-card .q-sub');
     if(meta && !meta.textContent.includes('Math Memory')) meta.textContent += ' · Math Memory';
   }
@@ -139,9 +183,11 @@
     btn.onclick=openChooser;
   }
 
-  // app.js calls this hook before rendering Home, so the complete bank is restored first.
   const observer=new MutationObserver(()=>{ injectHomeButton(); decoratePlay(); });
   observer.observe(document.documentElement,{childList:true,subtree:true});
-  window.addEventListener('hashchange',()=>setTimeout(()=>{injectHomeButton();decoratePlay();},0));
+  window.addEventListener('hashchange',()=>setTimeout(()=>{
+    if((location.hash==='' || location.hash==='#home') && active) restore();
+    injectHomeButton(); decoratePlay();
+  },0));
   injectHomeButton();
 })();
