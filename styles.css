@@ -95,3 +95,22 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .install-step span{flex:1}
 .install-note{margin-top:12px;padding:11px 12px;border-radius:14px;background:color-mix(in srgb,var(--accent2) 50%,var(--card));color:var(--muted);font-size:13px;line-height:1.55}
 @media(display-mode:standalone){#build-marker{opacity:.55}.install-card{display:none}}
+
+/* v12 — Math Memory + full Why context */
+.math-memory-card{border-color:#7c6cff;background:linear-gradient(180deg,rgba(124,108,255,.13),rgba(124,108,255,.04))}
+.math-sheet{max-height:min(84vh,760px);overflow:auto}
+.math-summary{margin:10px 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:.9rem}
+.math-select-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 12px}
+.math-all-on{outline:2px solid #7c6cff;background:rgba(124,108,255,.16)!important}
+.math-pick-label{margin:8px 0}
+.math-topic-grid{max-height:38vh;overflow:auto;padding:4px 2px 8px}
+.math-topic{min-height:42px;text-align:center}
+.math-selected-note{font-size:.82rem;opacity:.85;margin:10px 0 2px}
+.context-map{border-top:1px solid var(--line);padding-top:12px}
+.context-intro{margin-bottom:10px}
+.context-item{margin:9px 0;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}
+.context-title{font-weight:800;font-size:.86rem;margin-bottom:5px;direction:ltr;text-align:left;color:var(--accent)}
+.context-item .math{margin:5px 0;overflow-x:auto;overflow-y:hidden}
+.context-step{padding:8px 0;border-bottom:1px dashed var(--line)}
+.context-step:last-child{border-bottom:0}
+@media (max-width:560px){.math-select-row{grid-template-columns:1fr}.math-topic-grid{max-height:34vh}.context-item{padding:8px}.context-title{font-size:.8rem}}
