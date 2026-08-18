@@ -3,7 +3,7 @@
   "name": "ML Recall 89-2511",
   "short_name": "ML Recall",
   "description": "Mobile-first active recall game for BIU Introduction to Machine Learning 2026",
-  "start_url": "./?source=pwa&build=v17#home",
+  "start_url": "./?source=pwa&build=v18#home",
   "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
