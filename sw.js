@@ -1,8 +1,8 @@
-const CACHE = 'ml-recall-v15-20260818';
+const CACHE = 'ml-recall-v16-20260818';
 const CORE = [
-  './', './index.html', './styles.css?v=15', './app.js?v=15', './question-bank.js?v=15',
-  './course-math-v13.js?v=15', './math-mode.js?v=15', './why-context-v13.js?v=15', './single-tap-v15.js?v=15',
-  './manifest.webmanifest?v=15', './icons/icon-192.png', './icons/icon-512.png'
+  './', './index.html', './styles.css?v=16', './app.js?v=16', './question-bank.js?v=16',
+  './course-math-v13.js?v=16', './math-mode.js?v=16', './why-context-v13.js?v=16', './interaction-v16.js?v=16',
+  './manifest.webmanifest?v=16', './icons/icon-192.png', './icons/icon-512.png'
 ];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
