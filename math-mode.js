@@ -1,110 +1,147 @@
 (() => {
   'use strict';
-
   const BANK = window.ML_BANK;
-  if (!BANK || !Array.isArray(BANK.items)) return;
+  if(!BANK) return;
 
+  const TOPIC_KEY = 'ml-math-topics-v12';
   const originalItems = [...BANK.items];
-  const originalPriority = new Map(originalItems.map(it => [it.id, it.priority]));
-  let mathActive = false;
+  const originalTopics = [...BANK.topics];
+  let active = false;
 
-  function hasMathText(v) {
-    const s = String(v || '');
-    return /[=<>]|\\(?:frac|sum|prod|arg|max|min|mathbb|mathcal|epsilon|delta|lambda|theta|mu|sigma|nabla|ell|hat|Vert|lVert|begin)/.test(s);
-  }
-
-  function isMathItem(it) {
-    if (it.kind === 'formula') return true;
-    if (it.kind === 'theorem') return true;
-    if (it.kind === 'algorithm' && it.isProof) return true;
-    if (it.kind === 'definition' && (it.definitionParts || []).some(hasMathText)) return true;
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const eligibleSheet = it => it.sheet === 'NOT_GIVEN' || it.sheet === 'PARTIAL';
+  const isMathItem = it => {
+    if(!eligibleSheet(it)) return false;
+    // PARTIAL means the sheet supplies only part of the needed mathematics,
+    // so every PARTIAL item belongs in this mode even if it is stored as an algorithm/definition.
+    if(it.sheet === 'PARTIAL') return true;
+    if(it.kind === 'formula') return true;
+    if(it.kind === 'theorem') return true;
+    if(it.kind === 'definition' && (it.formula || it.definitionParts?.some(x => /Err|arg|max|min|∈|=|≤|≥|sum|P\(|N\(/i.test(String(x))))) return true;
+    if(it.kind === 'algorithm' && it.isProof) return true;
     return false;
+  };
+
+  const allMathItems = () => originalItems.filter(isMathItem);
+  const mathTopics = () => originalTopics.filter(t => allMathItems().some(x => x.topic === t));
+
+  function loadPrefs(){
+    try {
+      const p=JSON.parse(localStorage.getItem(TOPIC_KEY)||'null');
+      if(p && typeof p==='object') return {all:p.all!==false, topics:Array.isArray(p.topics)?p.topics:[]};
+    } catch{}
+    return {all:true, topics:[]};
+  }
+  function savePrefs(p){ localStorage.setItem(TOPIC_KEY, JSON.stringify(p)); }
+
+  function boosted(it){
+    let mul = it.sheet==='NOT_GIVEN' ? 4.5 : 3.4; // PARTIAL is also a core Math Memory target.
+    if(it.memory==='MUST_RECALL') mul*=1.8;
+    else if(it.memory==='MUST_RECONSTRUCT') mul*=1.55;
+    return {...it, priority:Math.max(1,(it.priority||1)*mul)};
   }
 
-  function boostedPriority(it) {
-    let p = Number(originalPriority.get(it.id) || 1);
-    if (it.memory === 'MUST_RECALL') p *= 3;
-    else if (it.memory === 'MUST_RECONSTRUCT') p *= 2.2;
-    else p *= 1.15;
-
-    if (it.sheet === 'NOT_GIVEN') p *= 2.2;
-    else if (it.sheet === 'PARTIAL') p *= 1.5;
-
-    if (it.kind === 'formula') p *= 1.6;
-    if (it.isProof) p *= 1.35;
-    return p;
+  function applyFilter(pref){
+    const selected = pref.all ? null : new Set(pref.topics);
+    const items = allMathItems().filter(x => !selected || selected.has(x.topic)).map(boosted);
+    if(!items.length) return false;
+    BANK.items = items;
+    BANK.topics = originalTopics.filter(t => items.some(x => x.topic===t));
+    active = true;
+    window.ML_MATH_MODE_ACTIVE = true;
+    return true;
   }
 
-  function activateMathMode() {
-    if (mathActive) return;
-    mathActive = true;
-    const filtered = originalItems.filter(isMathItem);
-    filtered.forEach(it => { it.priority = boostedPriority(it); });
-    BANK.items = filtered;
-    sessionStorage.setItem('ml-math-memory-active', '1');
-  }
-
-  function restoreBank() {
-    if (!mathActive) return;
-    originalItems.forEach(it => {
-      const old = originalPriority.get(it.id);
-      if (old === undefined) delete it.priority;
-      else it.priority = old;
-    });
+  function restore(){
+    if(!active && BANK.items===originalItems) return;
     BANK.items = originalItems;
-    mathActive = false;
-    sessionStorage.removeItem('ml-math-memory-active');
+    BANK.topics = originalTopics;
+    active = false;
+    window.ML_MATH_MODE_ACTIVE = false;
   }
+  window.ML_MATH_RESTORE = restore;
 
-  function injectButton() {
-    const grid = document.querySelector('section.grid');
-    const continueBtn = document.getElementById('continue');
-    if (!grid || !continueBtn || document.getElementById('mathMemoryAddon')) return;
+  function closeModal(){ document.getElementById('mathModeModal')?.remove(); }
 
-    const btn = document.createElement('button');
-    btn.className = 'home-btn';
-    btn.id = 'mathMemoryAddon';
-    btn.innerHTML = '<span class="emoji">🧮</span><strong>Math Memory</strong><small>אופציונלי: שינון מדויק של נוסחאות, משפטים ושלבי הוכחה — בלי לוותר על מצבי התרגול הקיימים</small>';
-    btn.onclick = () => {
-      activateMathMode();
-      const c = document.getElementById('continue');
-      if (c) c.click();
+  function openChooser(){
+    closeModal();
+    restore();
+    const pref=loadPrefs();
+    const selected=new Set(pref.topics.filter(t=>mathTopics().includes(t)));
+    let all=pref.all || selected.size===0;
+    const modal=document.createElement('div');
+    modal.className='modal'; modal.id='mathModeModal';
+    const topicRows=mathTopics().map((t,i)=>{
+      const n=allMathItems().filter(x=>x.topic===t).length;
+      return `<button class="chip math-topic ${!all&&selected.has(t)?'on':''}" data-math-topic="${i}">${esc(t)} <small>${n}</small></button>`;
+    }).join('');
+    modal.innerHTML=`<div class="sheet math-sheet" dir="rtl">
+      <h2>🧮 Math Memory</h2>
+      <p class="prose-he">תרגול מתמטי בלבד של <b>NOT GIVEN + PARTIAL</b>: נוסחאות, תנאי משפטים והוכחות פורמליות. כל המצבים הרגילים נשארים ללא שינוי.</p>
+      <div class="math-summary"><b>${allMathItems().filter(x=>x.kind==='formula').length}</b> נוסחאות · <b>${allMathItems().filter(x=>x.sheet==='PARTIAL').length}</b> פריטי PARTIAL · <b>${allMathItems().filter(x=>x.sheet==='NOT_GIVEN').length}</b> פריטי NOT GIVEN</div>
+      <div class="math-select-row">
+        <button class="secondary-btn ${all?'math-all-on':''}" id="mathAll">✓ כל הנושאים</button>
+        <button class="secondary-btn" id="mathClear">בחירה ידנית / נקה</button>
+      </div>
+      <div class="tiny math-pick-label">או בחר נושאים ספציפיים:</div>
+      <div class="chips math-topic-grid">${topicRows}</div>
+      <div class="math-selected-note" id="mathSelectedNote"></div>
+      <div class="action-row"><button class="secondary-btn" id="mathCancel">ביטול</button><button class="primary-btn" id="mathStart">התחל Math Memory</button></div>
+    </div>`;
+    document.body.appendChild(modal);
+
+    const note=modal.querySelector('#mathSelectedNote');
+    const allBtn=modal.querySelector('#mathAll');
+    const refresh=()=>{
+      allBtn.classList.toggle('math-all-on',all);
+      modal.querySelectorAll('[data-math-topic]').forEach((b,i)=>{
+        const t=mathTopics()[i]; b.classList.toggle('on',!all&&selected.has(t));
+      });
+      note.textContent=all ? `כל ${mathTopics().length} הנושאים נבחרו` : selected.size ? `${selected.size} נושאים נבחרו` : 'לא נבחר נושא — בחר לפחות אחד או לחץ ״כל הנושאים״';
     };
+    refresh();
 
-    continueBtn.insertAdjacentElement('afterend', btn);
+    allBtn.onclick=()=>{all=true;selected.clear();refresh();};
+    modal.querySelector('#mathClear').onclick=()=>{all=false;selected.clear();refresh();};
+    modal.querySelectorAll('[data-math-topic]').forEach((b,i)=>b.onclick=()=>{
+      all=false; const t=mathTopics()[i]; selected.has(t)?selected.delete(t):selected.add(t); refresh();
+    });
+    modal.querySelector('#mathCancel').onclick=closeModal;
+    modal.onclick=e=>{if(e.target===modal) closeModal();};
+    modal.querySelector('#mathStart').onclick=()=>{
+      if(!all && !selected.size){ note.textContent='בחר לפחות נושא אחד.'; return; }
+      const chosen={all,topics:[...selected]}; savePrefs(chosen);
+      if(!applyFilter(chosen)) return;
+      closeModal();
+      // Reuse the proven session engine so scoring, retries and spaced repetition remain identical.
+      document.getElementById('continue')?.click();
+      setTimeout(()=>decoratePlay(),0);
+    };
   }
 
-  function decorateMathSession() {
-    if (!mathActive) return;
-    const title = document.querySelector('.topbar .title');
-    if (title && !title.dataset.mathDecorated) {
-      title.dataset.mathDecorated = '1';
-      title.textContent = '🧮 MATH MEMORY';
-    }
-    const card = document.querySelector('.question-card');
-    if (card && !card.querySelector('.math-memory-note')) {
-      const note = document.createElement('div');
-      note.className = 'q-context math-memory-note';
-      note.dir = 'rtl';
-      note.textContent = 'במצב הזה המטרה היא לזכור את המבנה המתמטי המדויק: סימנים, גורמים, תנאים, סדר צעדים והקשרים בין נוסחאות.';
-      const badges = card.querySelector('.badges');
-      if (badges) badges.insertAdjacentElement('afterend', note);
-    }
+  function decoratePlay(){
+    if(!active) return;
+    const title=document.querySelector('.topbar .title');
+    if(title) title.textContent='🧮 MATH MEMORY';
+    const meta=document.querySelector('.question-card .q-sub');
+    if(meta && !meta.textContent.includes('Math Memory')) meta.textContent += ' · Math Memory';
   }
 
-  function sync() {
-    const hash = location.hash || '#home';
-    if (hash === '#home') {
-      restoreBank();
-      injectButton();
-    } else if (mathActive) {
-      decorateMathSession();
-    }
+  function injectHomeButton(){
+    if(location.hash && location.hash!=='#home') { decoratePlay(); return; }
+    const grid=document.querySelector('.grid');
+    if(!grid || document.getElementById('mathMemory')) return;
+    const btn=document.createElement('button');
+    btn.className='home-btn math-memory-card'; btn.id='mathMemory';
+    btn.innerHTML='<span class="emoji">🧮</span><strong>Math Memory</strong><small>NOT GIVEN + PARTIAL · כל הנושאים או בחירה ידנית</small>';
+    const install=grid.querySelector('#installApp');
+    if(install) grid.insertBefore(btn,install); else grid.appendChild(btn);
+    btn.onclick=openChooser;
   }
 
-  const observer = new MutationObserver(sync);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  window.addEventListener('hashchange', sync);
-  window.addEventListener('load', sync);
-  sync();
+  // app.js calls this hook before rendering Home, so the complete bank is restored first.
+  const observer=new MutationObserver(()=>{ injectHomeButton(); decoratePlay(); });
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener('hashchange',()=>setTimeout(()=>{injectHomeButton();decoratePlay();},0));
+  injectHomeButton();
 })();
