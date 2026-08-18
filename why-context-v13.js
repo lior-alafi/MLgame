@@ -54,11 +54,18 @@ function fullContextHTML(it){
 
 function renderTex(root=document){
   root.querySelectorAll?.('[data-v13-tex]').forEach(el=>{
+    if(el.dataset.v13Rendered==='1') return;
     const tex=el.dataset.v13Tex||'';
     if(window.katex){
-      try{katex.render(tex,el,{throwOnError:false,displayMode:true,strict:false});return;}catch{}
+      try{
+        katex.render(tex,el,{throwOnError:false,displayMode:true,strict:false});
+        el.dataset.v13Rendered='1';
+        return;
+      }catch{}
     }
-    el.textContent=tex;
+    // Before KaTeX finishes loading, show the source once without repeatedly
+    // mutating the DOM. katexready will render it later.
+    if(el.textContent!==tex) el.textContent=tex;
   });
 }
 
@@ -74,11 +81,28 @@ function augmentWhy(){
 }
 
 function decorateVersion(){
-  document.querySelectorAll('.q-sub').forEach(el=>{el.textContent=el.textContent.replace(/· v9\b/g,'· v13').replace(/· v11\b/g,'· v13').replace(/· v12\b/g,'· v13');});
+  document.querySelectorAll('.q-sub').forEach(el=>{
+    const next=el.textContent.replace(/· v9\b/g,'· v14').replace(/· v11\b/g,'· v14').replace(/· v12\b/g,'· v14').replace(/· v13\b/g,'· v14');
+    if(next!==el.textContent) el.textContent=next;
+  });
 }
 
-const obs=new MutationObserver(()=>{augmentWhy();decorateVersion();renderTex(document);});
+let scheduled=false;
+const schedule=()=>{
+  if(scheduled)return;
+  scheduled=true;
+  requestAnimationFrame(()=>{
+    scheduled=false;
+    augmentWhy();
+    decorateVersion();
+    renderTex(document);
+  });
+};
+const obs=new MutationObserver(schedule);
 obs.observe(document.documentElement,{subtree:true,childList:true});
-window.addEventListener('katexready',()=>renderTex(document));
-augmentWhy();decorateVersion();
+window.addEventListener('katexready',()=>{
+  document.querySelectorAll('[data-v13-tex]').forEach(el=>delete el.dataset.v13Rendered);
+  renderTex(document);
+});
+schedule();
 })();
